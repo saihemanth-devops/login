@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // UPDATE THIS
-        REGISTRY = "docker.io/gadeev" 
+        REGISTRY = "docker.io/saihemanthcartrade" 
         IMAGE = "my-app"
         TAG = "${env.BUILD_NUMBER}"
         DOCKER_CREDS = credentials('docker-hub-creds')
