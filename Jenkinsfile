@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        // CONFIGURATION
-        REGISTRY = "docker.io/gandeev" 
+        // UPDATE THIS
+        REGISTRY = "docker.io/gadeev" 
         IMAGE = "my-app"
         TAG = "${env.BUILD_NUMBER}"
         DOCKER_CREDS = credentials('docker-hub-creds')
@@ -12,11 +12,12 @@ pipeline {
     }
 
     stages {
-        stage('1. Parallel Security Checks') {
+        stage('1. Security Checks') {
             parallel {
                 stage('SAST: SonarQube') {
                     steps {
                         withSonarQubeEnv('SonarInternal') {
+                            // Using Docker inside Jenkins to run scanner
                             sh """
                             docker run --rm --network host \
                             -v ${WORKSPACE}:/usr/src \
@@ -29,25 +30,22 @@ pipeline {
                         }
                     }
                 }
-                stage('SCA: Trivy FS Scan') {
+                stage('SCA: Trivy FS') {
                     steps {
-                        // Fails pipeline if Critical Vulns found in dependencies
                         sh 'docker run --rm -v ${WORKSPACE}:/root/.cache/ aquasec/trivy fs . --severity CRITICAL --exit-code 1'
                     }
                 }
             }
         }
 
-        stage('2. Build & Image Security') {
+        stage('2. Build & Push') {
             steps {
                 script {
-                    // Build
                     sh "docker build -t ${REGISTRY}/${IMAGE}:${TAG} ."
                     
-                    // Container Security Scan (Trivy Image)
+                    // Scan Image
                     sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --severity CRITICAL --exit-code 1 ${REGISTRY}/${IMAGE}:${TAG}"
                     
-                    // Push
                     withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
                         sh "echo $PASS | docker login -u $USER --password-stdin"
                         sh "docker push ${REGISTRY}/${IMAGE}:${TAG}"
@@ -66,7 +64,7 @@ pipeline {
             }
         }
 
-        stage('4. Cypress E2E Tests') {
+        stage('4. Cypress Tests') {
             steps {
                 script {
                     def TEST_IP = sh(script: "kubectl get pod -n testing -l app=my-app -o jsonpath='{.items[0].status.podIP}'", returnStdout: true).trim()
@@ -89,16 +87,6 @@ pipeline {
                     sh "kubectl apply -f k8s/production.yaml -n production"
                 }
             }
-        }
-    }
-
-    post {
-        always {
-            emailext (
-                subject: "DevSecOps Job: ${currentBuild.currentResult}",
-                body: "Build ${env.BUILD_NUMBER} finished.\nResult: ${currentBuild.currentResult}",
-                to: "your-email@gmail.com"
-            )
         }
     }
 }
