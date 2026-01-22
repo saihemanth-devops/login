@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // CONFIGURATION
-        REGISTRY = "docker.io/YOUR_DOCKERHUB_USERNAME" 
+        REGISTRY = "docker.io/gandeev" 
         IMAGE = "my-app"
         TAG = "${env.BUILD_NUMBER}"
         DOCKER_CREDS = credentials('docker-hub-creds')
