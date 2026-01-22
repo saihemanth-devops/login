@@ -1,0 +1,11 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: app-test, namespace: testing }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: my-app } }
+  template:
+    metadata: { labels: { app: my-app } }
+    spec:
+      nodeSelector: { workload: testing } # Forces to Node 2
+      containers: [{ name: my-app, image: my-app:latest, ports: [{ containerPort: 80 }] }]
