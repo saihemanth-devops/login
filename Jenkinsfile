@@ -16,22 +16,24 @@ pipeline {
             parallel {
                 stage('SAST: SonarQube') {
                     steps {
-                        withSonarQubeEnv('SonarInternal') {
-                            // Using Docker inside Jenkins to run scanner
-                            sh """
-                            docker run --rm --network host \
-                            -v ${WORKSPACE}:/usr/src \
-                            sonarsource/sonar-scanner-cli \
-                            -Dsonar.projectKey=devsecops \
-                            -Dsonar.sources=. \
-                            -Dsonar.host.url=${SONAR_HOST} \
-                            -Dsonar.login=\$SONAR_AUTH_TOKEN
-                            """
+                        script {
+                            // 1. Initialize the Tool we installed in Step 2
+                            def scannerHome = tool 'SonarScanner' 
+                            
+                            // 2. Run Scanner Natively (Uses K8s Internal DNS)
+                            withSonarQubeEnv('SonarInternal') {
+                                sh """
+                                ${scannerHome}/bin/sonar-scanner \
+                                -Dsonar.projectKey=devsecops \
+                                -Dsonar.sources=.
+                                """
+                            }
                         }
                     }
                 }
                 stage('SCA: Trivy FS') {
                     steps {
+                        // Trivy still runs via Docker (That part is fine now!)
                         sh 'docker run --rm -v ${WORKSPACE}:/root/.cache/ aquasec/trivy fs . --severity CRITICAL --exit-code 1'
                     }
                 }
