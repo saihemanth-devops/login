@@ -192,7 +192,7 @@ pipeline {
                     subject: "DevSecOps Report: Build ${env.BUILD_NUMBER} (${currentBuild.currentResult})",
                     body: emailContent,
                     mimeType: 'text/html',
-                    to: "your-email@gmail.com"
+                    to: "saihemanth0827@gmail.com"
                 )
             }
         }
