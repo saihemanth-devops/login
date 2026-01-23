@@ -1,5 +1,5 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1  # <--- CHANGED
+kind: Rollout                     # <--- CHANGED
 metadata:
   name: app-prod
   namespace: production
@@ -14,9 +14,15 @@ spec:
         app: my-app
     spec:
       nodeSelector:
-        workload: production   # Forces pods onto production-labeled nodes
+        workload: production
       containers:
-        - name: my-app
-          image: my-app:latest
-          ports:
-            - containerPort: 80
+      - name: my-app
+        image: my-app:latest
+        ports:
+        - containerPort: 80
+  strategy:
+    canary:                       # <--- NEW STRATEGY
+      steps:
+      - setWeight: 20             # 1. Send 20% traffic to new version
+      - pause: { duration: 30s }  # 2. Wait 30s (Jenkins checks health here)
+      - setWeight: 100            # 3. Promote to 100%
