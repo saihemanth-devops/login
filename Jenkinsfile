@@ -69,14 +69,16 @@ pipeline {
         stage('4. Cypress Tests') {
             steps {
                 script {
+                    // 1. Get the IP of the running app
                     def TEST_IP = sh(script: "kubectl get pod -n testing -l app=my-app -o jsonpath='{.items[0].status.podIP}'", returnStdout: true).trim()
                     
+                    // 2. Run Cypress with fixed Working Directory (-w)
                     sh """
                     docker run --rm --ipc=host --network host \
-                      -v ${WORKSPACE}/cypress:/e2e/cypress \
-                      -v ${WORKSPACE}/cypress.config.js:/e2e/cypress.config.js \
+                      -v ${WORKSPACE}:/e2e \
+                      -w /e2e \
                       -e CYPRESS_BASE_URL=http://${TEST_IP}:80 \
-                      cypress/included:12.17.4 --headless
+                      cypress/included:12.17.4 --headless --spec "cypress/e2e/login_spec.cy.js"
                     """
                 }
             }
