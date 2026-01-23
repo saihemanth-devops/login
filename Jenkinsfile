@@ -69,13 +69,21 @@ pipeline {
         stage('4. Cypress Tests') {
             steps {
                 script {
-                    // 1. Get the IP of the running app
+                    // 1. Get the Application IP
                     def TEST_IP = sh(script: "kubectl get pod -n testing -l app=my-app -o jsonpath='{.items[0].status.podIP}'", returnStdout: true).trim()
                     
-                    // 2. Run Cypress with fixed Working Directory (-w)
+                    // 2. CRITICAL FIX: Convert Container Path to Host Path
+                    // Jenkins sees: /var/jenkins_home/...
+                    // Host sees:    /data/jenkins/...
+                    def HOST_WORKSPACE = WORKSPACE.replace('/var/jenkins_home', '/data/jenkins')
+                    
+                    echo "Jenkins Workspace: ${WORKSPACE}"
+                    echo "Host Workspace:    ${HOST_WORKSPACE}"
+
+                    // 3. Run Cypress using the HOST path
                     sh """
                     docker run --rm --ipc=host --network host \
-                      -v ${WORKSPACE}:/e2e \
+                      -v ${HOST_WORKSPACE}:/e2e \
                       -w /e2e \
                       -e CYPRESS_BASE_URL=http://${TEST_IP}:80 \
                       cypress/included:12.17.4 --headless --spec "cypress/e2e/login_spec.cy.js"
